@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pour Over Timer</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f3ee;
+      --panel: #fffaf2;
+      --ink: #26211d;
+      --muted: #6f665e;
+      --line: #ded5c9;
+      --accent: #2f6f62;
+      --accent-strong: #23554b;
+      --accent-soft: #dceee9;
+      --warn: #b4582a;
+      --shadow: 0 14px 35px rgba(38, 33, 29, .08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(47, 111, 98, .14), transparent 34rem),
+        linear-gradient(180deg, #fbf8f3 0%, var(--bg) 100%);
+      color: var(--ink);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 750;
+      transition: transform .16s ease, background .16s ease, opacity .16s ease;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 28px 18px 40px;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 10px 0 24px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(2rem, 5vw, 4rem);
+      line-height: .96;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 58ch;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 390px) 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: rgba(255, 250, 242, .88);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .controls {
+      padding: 18px;
+      position: sticky;
+      top: 14px;
+    }
+
+    .section {
+      padding: 16px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .section:first-child {
+      padding-top: 0;
+      border-top: 0;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    h2,
+    h3 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      font-size: 1.05rem;
+    }
+
+    h3 {
+      font-size: .88rem;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: .84rem;
+      font-weight: 720;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 11px;
+      color: var(--ink);
+      background: #fffdf8;
+      outline-color: var(--accent);
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: .82rem;
+      line-height: 1.45;
+    }
+
+    .method-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .ghost {
+      padding: 9px 11px;
+      background: #fffdf8;
+      border: 1px solid var(--line);
+      color: var(--ink);
+    }
+
+    .primary {
+      padding: 12px 15px;
+      background: var(--accent);
+      color: white;
+    }
+
+    .primary:hover {
+      background: var(--accent-strong);
+    }
+
+    .full {
+      width: 100%;
+    }
+
+    .recipe-editor {
+      display: grid;
+      gap: 10px;
+    }
+
+    .step-edit {
+      display: grid;
+      grid-template-columns: 1fr 86px 86px 34px;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .step-edit button {
+      min-height: 42px;
+      background: #f8eee4;
+      color: var(--warn);
+    }
+
+    .timer-card {
+      padding: 22px;
+      overflow: hidden;
+    }
+
+    .timer-top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: start;
+      margin-bottom: 20px;
+    }
+
+    .big-time {
+      font-size: clamp(3.5rem, 12vw, 8.8rem);
+      font-weight: 850;
+      line-height: .88;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0;
+    }
+
+    .phase {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .now {
+      display: grid;
+      gap: 9px;
+      padding: 16px;
+      background: #fffdf8;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .now-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .now-title {
+      font-size: clamp(1.45rem, 4vw, 2.4rem);
+      font-weight: 850;
+      line-height: 1.05;
+    }
+
+    .pour-amount {
+      color: var(--accent-strong);
+      font-size: clamp(1.35rem, 4vw, 2.2rem);
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .progress {
+      height: 11px;
+      border-radius: 999px;
+      background: #eee3d6;
+      overflow: hidden;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width .2s linear;
+    }
+
+    .timer-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .timer-actions button {
+      min-height: 48px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .stat {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffdf8;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 1.18rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .steps {
+      display: grid;
+      gap: 9px;
+    }
+
+    .brew-step {
+      display: grid;
+      grid-template-columns: 70px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffdf8;
+    }
+
+    .brew-step.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .brew-step.done {
+      opacity: .58;
+    }
+
+    .stamp,
+    .grams {
+      font-weight: 850;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .step-name {
+      font-weight: 800;
+    }
+
+    .step-note {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+
+    @media (max-width: 860px) {
+      header,
+      .timer-top {
+        align-items: start;
+        grid-template-columns: 1fr;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        position: static;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        padding: 18px 12px 28px;
+      }
+
+      .grid,
+      .stats,
+      .timer-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .step-edit {
+        grid-template-columns: 1fr 78px 78px 34px;
+      }
+
+      .brew-step {
+        grid-template-columns: 58px 1fr;
+      }
+
+      .grams {
+        grid-column: 2;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>Pour Over Timer</h1>
+        <p class="subtitle">Enter your coffee dose, choose a recipe, and follow calculated pour targets while the timer keeps pace.</p>
+      </div>
+      <button class="ghost" id="resetAll" type="button">Reset defaults</button>
+    </header>
+
+    <div class="layout">
+      <aside class="panel controls">
+        <section class="section">
+          <div class="section-title">
+            <h2>Brew setup</h2>
+          </div>
+          <div class="grid">
+            <label>
+              Coffee grams
+              <input id="coffeeDose" type="number" min="1" max="80" step="0.1" value="20">
+            </label>
+            <label>
+              Water ratio
+              <input id="ratio" type="number" min="8" max="22" step="0.1" value="16">
+            </label>
+          </div>
+          <p class="hint" id="targetHint">Target water: 320g</p>
+        </section>
+
+        <section class="section">
+          <div class="section-title">
+            <h2>Method</h2>
+          </div>
+          <label>
+            Recipe
+            <select id="methodSelect"></select>
+          </label>
+          <div class="method-actions">
+            <button class="ghost" id="saveMethod" type="button">Save as custom</button>
+            <button class="ghost" id="renameMethod" type="button">Rename</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-title">
+            <h2>Pour steps</h2>
+            <button class="ghost" id="addStep" type="button">Add</button>
+          </div>
+          <div class="recipe-editor" id="recipeEditor"></div>
+          <p class="hint">Each step uses a percent of total brew water. The app rounds to whole grams and fixes the last pour so the total lands exactly.</p>
+        </section>
+      </aside>
+
+      <section class="panel timer-card" aria-live="polite">
+        <div class="timer-top">
+          <div>
+            <div class="big-time" id="timeDisplay">00:00</div>
+          </div>
+          <span class="phase" id="phaseLabel">Ready</span>
+        </div>
+
+        <div class="now">
+          <div class="now-main">
+            <div>
+              <div class="now-title" id="currentStepName">Bloom</div>
+              <div class="hint" id="currentStepNote">Pour gently and saturate all grounds.</div>
+            </div>
+            <div class="pour-amount" id="currentPourAmount">40g</div>
+          </div>
+          <div class="progress" aria-label="Current step progress">
+            <span id="progressBar"></span>
+          </div>
+        </div>
+
+        <div class="timer-actions">
+          <button class="primary" id="startPause" type="button">Start</button>
+          <button class="ghost" id="nextStep" type="button">Next</button>
+          <button class="ghost" id="resetTimer" type="button">Reset</button>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <span class="hint">Total water</span>
+            <strong id="totalWater">320g</strong>
+          </div>
+          <div class="stat">
+            <span class="hint">Brew time</span>
+            <strong id="brewTime">03:30</strong>
+          </div>
+          <div class="stat">
+            <span class="hint">Cumulative</span>
+            <strong id="cumulativeNow">0g</strong>
+          </div>
+        </div>
+
+        <div class="steps" id="stepsList"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const defaults = [
+      {
+        name: "Classic V60",
+        ratio: 16,
+        steps: [
+          { name: "Bloom", time: 45, percent: 12.5, note: "Pour gently and saturate all grounds." },
+          { name: "First pour", time: 45, percent: 28.125, note: "Slow circles, keep the bed level." },
+          { name: "Second pour", time: 45, percent: 28.125, note: "Pour from center outward, then back in." },
+          { name: "Final pour", time: 75, percent: 31.25, note: "Finish with a small swirl." },
+          { name: "Drawdown", time: 30, percent: 0, note: "Let it drain. Serve when the bed is dry." }
+        ]
+      },
+      {
+        name: "4:6 Method",
+        ratio: 15,
+        steps: [
+          { name: "Sweetness pour", time: 45, percent: 20, note: "Less water here tastes brighter, more tastes sweeter." },
+          { name: "Balance pour", time: 45, percent: 20, note: "Complete the first 40% of the brew water." },
+          { name: "Strength pour 1", time: 45, percent: 20, note: "Keep pours even and let the slurry drop." },
+          { name: "Strength pour 2", time: 45, percent: 20, note: "Repeat once the bed is visible." },
+          { name: "Strength pour 3", time: 60, percent: 20, note: "Final pulse pour." },
+          { name: "Drawdown", time: 60, percent: 0, note: "Let it finish draining." }
+        ]
+      },
+      {
+        name: "James Hoffmann V60 One Cup",
+        ratio: 16.6667,
+        steps: [
+          { name: "Bloom + swirl", time: 45, percent: 20, note: "Pour to about 50g for a 15g dose, then swirl to wet all grounds." },
+          { name: "Pour to 100g", time: 25, percent: 20, note: "Pour the next fifth of the water, keeping the bed gently moving." },
+          { name: "Pour to 150g", time: 20, percent: 20, note: "Add the next pulse with a controlled center-to-outward pour." },
+          { name: "Pour to 200g", time: 20, percent: 20, note: "Keep the stream gentle and avoid pouring too high." },
+          { name: "Final pour + swirl", time: 10, percent: 20, note: "Finish the target water, then give the brewer a gentle swirl." },
+          { name: "Drawdown", time: 60, percent: 0, note: "Let it drain through. Aim for the brew to finish around 3 minutes." }
+        ]
+      },
+      {
+        name: "One Bloom, Two Pours",
+        ratio: 16.5,
+        steps: [
+          { name: "Bloom", time: 40, percent: 15, note: "Use about three times the coffee weight." },
+          { name: "Main pour", time: 60, percent: 50, note: "Steady spiral to most of the target water." },
+          { name: "Top up", time: 90, percent: 35, note: "Finish gently and swirl once." },
+          { name: "Drawdown", time: 60, percent: 0, note: "Wait until the stream slows to drips." }
+        ]
+      }
+    ];
+
+    const storageKey = "pour-over-tool-state-v1";
+    const els = {
+      coffeeDose: document.querySelector("#coffeeDose"),
+      ratio: document.querySelector("#ratio"),
+      targetHint: document.querySelector("#targetHint"),
+      methodSelect: document.querySelector("#methodSelect"),
+      saveMethod: document.querySelector("#saveMethod"),
+      renameMethod: document.querySelector("#renameMethod"),
+      resetAll: document.querySelector("#resetAll"),
+      addStep: document.querySelector("#addStep"),
+      recipeEditor: document.querySelector("#recipeEditor"),
+      timeDisplay: document.querySelector("#timeDisplay"),
+      phaseLabel: document.querySelector("#phaseLabel"),
+      currentStepName: document.querySelector("#currentStepName"),
+      currentStepNote: document.querySelector("#currentStepNote"),
+      currentPourAmount: document.querySelector("#currentPourAmount"),
+      progressBar: document.querySelector("#progressBar"),
+      startPause: document.querySelector("#startPause"),
+      nextStep: document.querySelector("#nextStep"),
+      resetTimer: document.querySelector("#resetTimer"),
+      totalWater: document.querySelector("#totalWater"),
+      brewTime: document.querySelector("#brewTime"),
+      cumulativeNow: document.querySelector("#cumulativeNow"),
+      stepsList: document.querySelector("#stepsList")
+    };
+
+    let state = loadState();
+    let timer = {
+      running: false,
+      elapsed: 0,
+      lastTick: 0,
+      raf: null
+    };
+
+    function loadState() {
+      const fallback = {
+        dose: 20,
+        selected: 0,
+        methods: structuredClone(defaults)
+      };
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey));
+        if (!saved || !Array.isArray(saved.methods) || saved.methods.length === 0) return fallback;
+        const defaultsByName = new Map(defaults.map(method => [method.name, method]));
+        saved.methods = saved.methods.map((method) => {
+          const freshDefault = defaultsByName.get(method.name);
+          return freshDefault ? structuredClone(freshDefault) : method;
+        });
+        const savedNames = new Set(saved.methods.map(method => method.name));
+        const missingDefaults = defaults.filter(method => !savedNames.has(method.name));
+        if (missingDefaults.length > 0) {
+          saved.methods = saved.methods.concat(structuredClone(missingDefaults));
+        }
+        if (!saved.methods[saved.selected]) saved.selected = 0;
+        return saved;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+
+    function activeMethod() {
+      return state.methods[state.selected];
+    }
+
+    function totalWater() {
+      return Math.round(Number(state.dose || 0) * Number(activeMethod().ratio || 0));
+    }
+
+    function recipeSteps() {
+      return activeMethod().steps
+        .map((step, index) => ({ ...step, originalIndex: index }));
+    }
+
+    function calculatedSteps() {
+      const water = totalWater();
+      let cumulative = 0;
+      let pouredSoFar = 0;
+      const steps = recipeSteps();
+      const positiveSteps = steps.filter(step => Number(step.percent) > 0);
+      const lastPositiveIndex = positiveSteps.at(-1)?.originalIndex;
+
+      let elapsedStart = 0;
+
+      return steps.map((step) => {
+        let grams = Math.round(water * Number(step.percent || 0) / 100);
+        if (step.originalIndex === lastPositiveIndex) {
+          grams = Math.max(0, water - pouredSoFar);
+        }
+        if (grams > 0) pouredSoFar += grams;
+        cumulative += grams;
+        const duration = Math.max(0, Number(step.time || 0));
+        const startTime = elapsedStart;
+        const endTime = startTime + duration;
+        elapsedStart = endTime;
+        return { ...step, grams, cumulative, duration, startTime, endTime };
+      });
+    }
+
+    function formatTime(seconds) {
+      const safeSeconds = Math.max(0, Math.floor(seconds));
+      const minutes = Math.floor(safeSeconds / 60).toString().padStart(2, "0");
+      const secs = (safeSeconds % 60).toString().padStart(2, "0");
+      return `${minutes}:${secs}`;
+    }
+
+    function currentIndex(steps) {
+      if (steps.length === 0) return 0;
+      for (let i = 0; i < steps.length; i += 1) {
+        if (timer.elapsed < Number(steps[i].endTime)) return i;
+      }
+      return steps.length - 1;
+    }
+
+    function nextBoundary(steps, index) {
+      return Number(steps[index]?.endTime || 0);
+    }
+
+    function renderMethodSelect() {
+      els.methodSelect.innerHTML = "";
+      state.methods.forEach((method, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = method.name;
+        els.methodSelect.appendChild(option);
+      });
+      els.methodSelect.value = state.selected;
+    }
+
+    function renderEditor() {
+      els.recipeEditor.innerHTML = "";
+      activeMethod().steps.forEach((step, index) => {
+        const row = document.createElement("div");
+        row.className = "step-edit";
+        row.innerHTML = `
+          <label>
+            Name
+            <input data-field="name" data-index="${index}" value="${escapeHtml(step.name)}">
+          </label>
+          <label>
+            Duration
+            <input data-field="time" data-index="${index}" type="number" min="0" step="5" value="${Number(step.time)}">
+          </label>
+          <label>
+            Water %
+            <input data-field="percent" data-index="${index}" type="number" min="0" max="100" step="0.1" value="${Number(step.percent)}">
+          </label>
+          <button type="button" data-remove="${index}" aria-label="Remove step">x</button>
+        `;
+        els.recipeEditor.appendChild(row);
+      });
+    }
+
+    function renderTimer() {
+      const steps = calculatedSteps();
+      const index = currentIndex(steps);
+      const current = steps[index] || { name: "Ready", note: "", grams: 0, cumulative: 0, time: 0, duration: 0, startTime: 0, endTime: 0 };
+      const endTime = Number(steps.at(-1)?.endTime || 0);
+      const nextTime = nextBoundary(steps, index);
+      const stepStart = Number(current.startTime || 0);
+      const duration = Math.max(1, nextTime - stepStart);
+      const progress = index === steps.length - 1
+        ? Math.min(100, Math.max(0, (timer.elapsed - stepStart) / duration * 100))
+        : Math.min(100, Math.max(0, (timer.elapsed - stepStart) / duration * 100));
+
+      els.timeDisplay.textContent = formatTime(timer.elapsed);
+      els.phaseLabel.textContent = timer.elapsed >= endTime && !timer.running ? "Complete" : timer.running ? "Brewing" : "Ready";
+      els.currentStepName.textContent = current.name;
+      els.currentStepNote.textContent = current.note || "No note for this step.";
+      els.currentPourAmount.textContent = current.grams > 0 ? `+${current.grams}g` : "Wait";
+      els.progressBar.style.width = `${progress}%`;
+      els.totalWater.textContent = `${totalWater()}g`;
+      els.brewTime.textContent = formatTime(endTime);
+      els.cumulativeNow.textContent = `${current.cumulative || 0}g`;
+      els.targetHint.textContent = `Target water: ${totalWater()}g`;
+      els.startPause.textContent = timer.running ? "Pause" : timer.elapsed > 0 ? "Resume" : "Start";
+
+      els.stepsList.innerHTML = "";
+      steps.forEach((step, stepIndex) => {
+        const item = document.createElement("div");
+        item.className = `brew-step ${stepIndex === index ? "active" : ""} ${timer.elapsed >= Number(step.endTime) && stepIndex < index ? "done" : ""}`;
+        item.innerHTML = `
+          <div class="stamp">${formatTime(step.duration)}</div>
+          <div>
+            <div class="step-name">${escapeHtml(step.name)}</div>
+            <div class="step-note">${escapeHtml(step.note || "")}</div>
+          </div>
+          <div class="grams">${step.grams > 0 ? `+${step.grams}g` : "wait"}</div>
+        `;
+        els.stepsList.appendChild(item);
+      });
+    }
+
+    function renderAll() {
+      const method = activeMethod();
+      els.coffeeDose.value = state.dose;
+      els.ratio.value = method.ratio;
+      renderMethodSelect();
+      renderEditor();
+      renderTimer();
+      saveState();
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function tick(now) {
+      if (!timer.running) return;
+      if (!timer.lastTick) timer.lastTick = now;
+      timer.elapsed += (now - timer.lastTick) / 1000;
+      timer.lastTick = now;
+      const endTime = Number(calculatedSteps().at(-1)?.endTime || 0);
+      if (timer.elapsed >= endTime) {
+        timer.elapsed = endTime;
+        timer.running = false;
+      }
+      renderTimer();
+      timer.raf = requestAnimationFrame(tick);
+    }
+
+    function resetTimer() {
+      timer.running = false;
+      timer.elapsed = 0;
+      timer.lastTick = 0;
+      if (timer.raf) cancelAnimationFrame(timer.raf);
+      renderTimer();
+    }
+
+    els.coffeeDose.addEventListener("input", () => {
+      state.dose = Number(els.coffeeDose.value);
+      saveState();
+      renderTimer();
+    });
+
+    els.ratio.addEventListener("input", () => {
+      activeMethod().ratio = Number(els.ratio.value);
+      saveState();
+      renderTimer();
+    });
+
+    els.methodSelect.addEventListener("change", () => {
+      state.selected = Number(els.methodSelect.value);
+      resetTimer();
+      renderAll();
+    });
+
+    els.recipeEditor.addEventListener("input", (event) => {
+      const input = event.target.closest("input[data-field]");
+      if (!input) return;
+      const step = activeMethod().steps[Number(input.dataset.index)];
+      step[input.dataset.field] = input.dataset.field === "name" ? input.value : Number(input.value);
+      saveState();
+      renderTimer();
+    });
+
+    els.recipeEditor.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-remove]");
+      if (!button) return;
+      if (activeMethod().steps.length <= 1) return;
+      activeMethod().steps.splice(Number(button.dataset.remove), 1);
+      resetTimer();
+      renderAll();
+    });
+
+    els.addStep.addEventListener("click", () => {
+      const steps = activeMethod().steps;
+      const last = steps.at(-1);
+      steps.push({
+        name: "New pour",
+        time: Number(last?.time || 0) + 45,
+        percent: 10,
+        note: "Adjust this note in the saved recipe later."
+      });
+      renderAll();
+    });
+
+    els.saveMethod.addEventListener("click", () => {
+      const copy = structuredClone(activeMethod());
+      const customCount = state.methods.filter(method => method.name.startsWith("My method")).length + 1;
+      copy.name = `My method ${customCount}`;
+      state.methods.push(copy);
+      state.selected = state.methods.length - 1;
+      renderAll();
+    });
+
+    els.renameMethod.addEventListener("click", () => {
+      const name = prompt("Name this brew method:", activeMethod().name);
+      if (!name || !name.trim()) return;
+      activeMethod().name = name.trim();
+      renderAll();
+    });
+
+    els.resetAll.addEventListener("click", () => {
+      if (!confirm("Reset recipes and timer to defaults?")) return;
+      localStorage.removeItem(storageKey);
+      state = loadState();
+      resetTimer();
+      renderAll();
+    });
+
+    els.startPause.addEventListener("click", () => {
+      timer.running = !timer.running;
+      timer.lastTick = 0;
+      if (timer.running) {
+        timer.raf = requestAnimationFrame(tick);
+      } else if (timer.raf) {
+        cancelAnimationFrame(timer.raf);
+      }
+      renderTimer();
+    });
+
+    els.nextStep.addEventListener("click", () => {
+      const steps = calculatedSteps();
+      const index = currentIndex(steps);
+      const nextTime = Number(steps[index]?.endTime || 0);
+      if (nextTime > timer.elapsed) timer.elapsed = nextTime;
+      renderTimer();
+    });
+
+    els.resetTimer.addEventListener("click", resetTimer);
+
+    renderAll();
+  </script>
+</body>
+</html>
