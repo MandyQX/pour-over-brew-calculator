@@ -172,6 +172,11 @@
       margin-top: 12px;
     }
 
+    .share-status {
+      min-height: 1.2em;
+      margin: 8px 0 0;
+    }
+
     .ghost {
       padding: 9px 11px;
       background: #fffdf8;
@@ -445,7 +450,9 @@
           <div class="method-actions">
             <button class="ghost" id="saveMethod" type="button">Save as custom</button>
             <button class="ghost" id="renameMethod" type="button">Rename</button>
+            <button class="ghost" id="shareMethod" type="button">Copy recipe link</button>
           </div>
+          <p class="hint share-status" id="shareStatus" aria-live="polite"></p>
         </section>
 
         <section class="section">
@@ -555,6 +562,7 @@
     ];
 
     const storageKey = "pour-over-tool-state-v1";
+    const shareParam = "recipe";
     const els = {
       coffeeDose: document.querySelector("#coffeeDose"),
       ratio: document.querySelector("#ratio"),
@@ -562,6 +570,8 @@
       methodSelect: document.querySelector("#methodSelect"),
       saveMethod: document.querySelector("#saveMethod"),
       renameMethod: document.querySelector("#renameMethod"),
+      shareMethod: document.querySelector("#shareMethod"),
+      shareStatus: document.querySelector("#shareStatus"),
       resetAll: document.querySelector("#resetAll"),
       addStep: document.querySelector("#addStep"),
       recipeEditor: document.querySelector("#recipeEditor"),
@@ -616,6 +626,122 @@
 
     function saveState() {
       localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+
+    function boundedNumber(value, fallback, min, max) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return fallback;
+      return Math.min(max, Math.max(min, number));
+    }
+
+    function normalizedMethod(method) {
+      const steps = Array.isArray(method?.steps)
+        ? method.steps.map(step => ({
+          name: String(step?.name || "Pour").trim().slice(0, 80) || "Pour",
+          time: boundedNumber(step?.time, 45, 0, 3600),
+          percent: boundedNumber(step?.percent, 0, 0, 100),
+          note: String(step?.note || "").trim().slice(0, 220)
+        }))
+        : [];
+
+      if (steps.length === 0) {
+        throw new Error("Shared recipe has no steps.");
+      }
+
+      return {
+        name: String(method?.name || "Shared recipe").trim().slice(0, 80) || "Shared recipe",
+        ratio: boundedNumber(method?.ratio, 16, 1, 100),
+        steps
+      };
+    }
+
+    function toBase64Url(value) {
+      const bytes = new TextEncoder().encode(value);
+      let binary = "";
+      bytes.forEach(byte => {
+        binary += String.fromCharCode(byte);
+      });
+      return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+    }
+
+    function fromBase64Url(value) {
+      const normalized = value.replaceAll("-", "+").replaceAll("_", "/");
+      const padding = (4 - normalized.length % 4) % 4;
+      const binary = atob(normalized + "=".repeat(padding));
+      const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    }
+
+    function methodSignature(method) {
+      return JSON.stringify(normalizedMethod(method));
+    }
+
+    function uniqueMethodName(name) {
+      const baseName = name.trim() || "Shared recipe";
+      if (!state.methods.some(method => method.name === baseName)) return baseName;
+
+      let count = 2;
+      while (state.methods.some(method => method.name === `${baseName} ${count}`)) {
+        count += 1;
+      }
+      return `${baseName} ${count}`;
+    }
+
+    function sharePayload() {
+      return {
+        v: 1,
+        dose: boundedNumber(state.dose, 20, 1, 80),
+        method: normalizedMethod(activeMethod())
+      };
+    }
+
+    function recipeShareUrl() {
+      const url = new URL(window.location.href);
+      url.searchParams.set(shareParam, toBase64Url(JSON.stringify(sharePayload())));
+      return url.toString();
+    }
+
+    function importRecipeFromUrl() {
+      const url = new URL(window.location.href);
+      const encodedRecipe = url.searchParams.get(shareParam);
+      if (!encodedRecipe) return;
+
+      try {
+        const payload = JSON.parse(fromBase64Url(encodedRecipe));
+        const method = normalizedMethod(payload.method || payload);
+        const signature = methodSignature(method);
+        const existingIndex = state.methods.findIndex(existingMethod => {
+          try {
+            return methodSignature(existingMethod) === signature;
+          } catch {
+            return false;
+          }
+        });
+
+        if (Number.isFinite(Number(payload.dose))) {
+          state.dose = boundedNumber(payload.dose, state.dose, 1, 80);
+        }
+
+        if (existingIndex >= 0) {
+          state.selected = existingIndex;
+          els.shareStatus.textContent = "Shared recipe already saved on this device.";
+        } else {
+          method.name = uniqueMethodName(method.name);
+          state.methods.push(method);
+          state.selected = state.methods.length - 1;
+          els.shareStatus.textContent = "Shared recipe saved on this device.";
+        }
+
+        url.searchParams.delete(shareParam);
+        try {
+          history.replaceState(null, "", url.toString());
+        } catch {
+          // Some local file views block history updates; the recipe is still imported.
+        }
+        saveState();
+      } catch {
+        els.shareStatus.textContent = "That recipe link could not be imported.";
+      }
     }
 
     function activeMethod() {
@@ -854,6 +980,17 @@
       renderAll();
     });
 
+    els.shareMethod.addEventListener("click", async () => {
+      const link = recipeShareUrl();
+      try {
+        await navigator.clipboard.writeText(link);
+        els.shareStatus.textContent = "Recipe link copied. Open it on your phone to save this recipe there.";
+      } catch {
+        prompt("Copy this recipe link:", link);
+        els.shareStatus.textContent = "Copy the link and open it on your phone to save this recipe there.";
+      }
+    });
+
     els.resetAll.addEventListener("click", () => {
       if (!confirm("Reset recipes and timer to defaults?")) return;
       localStorage.removeItem(storageKey);
@@ -883,6 +1020,7 @@
 
     els.resetTimer.addEventListener("click", resetTimer);
 
+    importRecipeFromUrl();
     renderAll();
   </script>
 </body>
