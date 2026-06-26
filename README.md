@@ -1,6 +1,6 @@
 # Pour Over Brew Calculator
 
-A single-page pour-over timer and recipe calculator. Enter a coffee dose, choose a brew method, and the app calculates total water, per-pour grams, cumulative targets, and step timing.
+A single-page pour-over timer and recipe calculator. Enter a coffee dose, choose a brew method, and the app calculates total water, per-step pour amounts, cumulative targets, and step timing.
 
 ## Features
 
@@ -37,10 +37,10 @@ The timer shows:
 
 - Current elapsed brew time
 - Active step name and note
-- Current pour amount
+- Current scale target for the active step
 - Total target water
 - Total recipe time
-- Current cumulative water target
+- Per-step pour amounts
 
 ## Custom Recipes
 

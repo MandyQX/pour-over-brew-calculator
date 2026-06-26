@@ -479,7 +479,7 @@
               <div class="now-title" id="currentStepName">Bloom</div>
               <div class="hint" id="currentStepNote">Pour gently and saturate all grounds.</div>
             </div>
-            <div class="pour-amount" id="currentPourAmount">40g</div>
+            <div class="pour-amount" id="currentPourAmount">Pour to 40g</div>
           </div>
           <div class="progress" aria-label="Current step progress">
             <span id="progressBar"></span>
@@ -502,7 +502,7 @@
             <strong id="brewTime">03:30</strong>
           </div>
           <div class="stat">
-            <span class="hint">Cumulative</span>
+            <span class="hint">Scale target</span>
             <strong id="cumulativeNow">0g</strong>
           </div>
         </div>
@@ -801,6 +801,16 @@
       return Number(steps[index]?.endTime || 0);
     }
 
+    function currentTargetText(step) {
+      const target = `${step.cumulative || 0}g`;
+      if (step.grams > 0) return `Pour to ${target}`;
+      return step.cumulative > 0 ? `${target} total` : "Wait";
+    }
+
+    function stepTargetText(step) {
+      return step.grams > 0 ? `+${step.grams}g` : "wait";
+    }
+
     function renderMethodSelect() {
       els.methodSelect.innerHTML = "";
       state.methods.forEach((method, index) => {
@@ -852,7 +862,7 @@
       els.phaseLabel.textContent = timer.elapsed >= endTime && !timer.running ? "Complete" : timer.running ? "Brewing" : "Ready";
       els.currentStepName.textContent = current.name;
       els.currentStepNote.textContent = current.note || "No note for this step.";
-      els.currentPourAmount.textContent = current.grams > 0 ? `+${current.grams}g` : "Wait";
+      els.currentPourAmount.textContent = currentTargetText(current);
       els.progressBar.style.width = `${progress}%`;
       els.totalWater.textContent = `${totalWater()}g`;
       els.brewTime.textContent = formatTime(endTime);
@@ -870,7 +880,7 @@
             <div class="step-name">${escapeHtml(step.name)}</div>
             <div class="step-note">${escapeHtml(step.note || "")}</div>
           </div>
-          <div class="grams">${step.grams > 0 ? `+${step.grams}g` : "wait"}</div>
+          <div class="grams">${stepTargetText(step)}</div>
         `;
         els.stepsList.appendChild(item);
       });
